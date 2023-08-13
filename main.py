@@ -150,7 +150,7 @@ def transform_inputs(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, V
         
     return np.array(n_TrainInput), np.array(n_TestInput), np.array(n_ValInput), np.array(n_TrainOutput), np.array(n_TestOutput), np.array(n_ValOutput)
     
-
+print('a')
 N_Points = 48*48
 N_Dimensions = 3
 N_variables = 10
