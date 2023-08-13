@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from sklearn.model_selection import train_test_split
@@ -6,14 +5,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.ndimage import rotate
 from tqdm import tqdm
-from tensorflow.keras.layers import Input, Convolution1D, MaxPooling1D, Lambda, concatenate, Dropout
+from tensorflow import keras
+from tensorflow.keras.layers import Input, Convolution1D, MaxPooling1D, Lambda, concatenate, Dropout, Dense, Conv1D, Flatten
 from tensorflow.keras.models import Model
 from tensorflow.keras import initializers
+from tensorflow.keras import layers, models, callbacks
+from tqdm.keras import TqdmCallback 
 
+#Adding this for gpu compatibility
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
+print('There are ', len(physical_devices), ' GPUs avaiable')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
 config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
 
 def check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput):
     D = [TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput]
@@ -32,37 +35,49 @@ def check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput,
     print('')
     print("There are ", int(totaltrajectories/2), ' different images with their corresponding labels.')
 
+
+
+def exp_dim(global_feature, N_Points):
+    return tf.tile(global_feature, [1, N_Points, 1])
+
+class custom_history_and_tqdm(keras.callbacks.Callback):
+    def __init__(self):
+        super().__init__()
+        self.tqdm_callback = TqdmCallback()
+
+    def on_train_begin(self, logs=None):
+        self.history = {}
+
+    def on_epoch_end(self, epoch, logs=None):
+        for key, value in logs.items():
+            self.history.setdefault(key, []).append(value)
+        self.tqdm_callback.on_epoch_end(epoch, logs)
+
 def BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale):
     _tf_INPUT_TENSOR = Input(shape=(N_Points, N_Dimensions))
     
-    g = Convolution1D(int(64*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(_tf_INPUT_TENSOR)
-    g = Convolution1D(int(64*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(g)
-
+    g = Convolution1D(int(32*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(_tf_INPUT_TENSOR)
     seg_part1 = g
     g = Convolution1D(int(64*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(g)
-    g = Convolution1D(int(128*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(g)
-    g = Convolution1D(int(1024*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(g)
+    g = Convolution1D(int(256*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(g)
+    g = Dropout(rate=0.5)(g)  # Adding dropout layer
     
-    #global_feature = MaxPooling1D(pool_size=N_Points)(g)
-    #global_feature = Lambda(exp_dim, arguments={'N_Points': N_Points})(global_feature)
-    c = g
-    #c = concatenate([seg_part1, global_feature])
-    c = Convolution1D(int(512*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
-    
-    c = Dropout(rate=0.5)(c)  # Adding dropout layer
-    
-    c = Convolution1D(int(256*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
-    c = Convolution1D(int(128*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
-    c = Convolution1D(int(128*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
-    prediction = Convolution1D(N_variables, 1, activation='sigmoid', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
+    global_feature = MaxPooling1D(pool_size=N_Points)(g)
+    global_feature = Lambda(exp_dim, arguments={'N_Points': N_Points})(global_feature)
 
+    c = concatenate([seg_part1, global_feature])
+    c = Convolution1D(int(128*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
+    c = Dropout(rate=0.5)(c)  # Adding dropout layer
+    c = Convolution1D(int(64*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
+    c = Dropout(rate=0.25)(c)  # Adding dropout layer
+    c = Dense(int(32*NetworkScale), activation='relu')(c)
+    prediction = Dense(10, activation='sigmoid')(c)
     model = Model(inputs=_tf_INPUT_TENSOR, outputs=prediction)
     return model
 
 def print_model_summary(model):
 
     totalparams = 0
-
     print(f"{'Layer (type)': <35}{'Output Shape': <30}{'Param #': <15}")
     print("="*100)
     for layer in model.layers:
@@ -70,120 +85,88 @@ def print_model_summary(model):
         print(f"{layer.name: <35}{str(layer.output_shape): <30}{layer.count_params(): <15}")
     print('')
     print('Total Parameters: ', totalparams)
- 
-def transform_inputs(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput):
-    n_TrainInput = []
-    n_TestInput = []
-    n_ValInput = []
 
-    n_TrainOutput = []
-    n_TestOutput = []
-    n_ValOutput = []
-    
-    
-    indices = np.arange(0, len(TrainInput), 1)
-    for q in tqdm(range(3*len(TrainInput))):
-        
-        index = np.random.choice(indices)
-        original_matrix = TrainInput[index]
-        
-        rotated_matrix = rotate(original_matrix, np.random.randint(-20, 20), reshape=False)
-        expanded_matrix = expand_matrix(rotated_matrix, num_rows_to_add=10, num_cols_to_add=10, fill_value=0)
-        shifted_matrix = shift_matrix(expanded_matrix)
-        noisy_matrix = add_gaussian_noise(shifted_matrix, mean=0, std=np.random.randint(0, 80))
-        scaled_noisy_matrix = scale_matrix(noisy_matrix, new_min=0, new_max=1)
-        
-        point = []
-        for i in range(48):
-            for j in range(48):
-                point.append([j/48,  (48 - i)/48, scaled_noisy_matrix[i, j]])
-            
-        n_TrainInput.append(point)
-        
-        output = np.zeros(10)
-        output[TrainOutput[q]] = 1
-        n_TrainOutput.append(output.T)
-  
-    for _ in tqdm(range(len(TestInput) - 4500)):
-        
-        original_matrix = TestInput[_]
-        
-        rotated_matrix = rotate(original_matrix, np.random.randint(-20, 20), reshape=False)
-        expanded_matrix = expand_matrix(rotated_matrix, num_rows_to_add=10, num_cols_to_add=10, fill_value=0)
-        shifted_matrix = shift_matrix(expanded_matrix)
-        noisy_matrix = add_gaussian_noise(shifted_matrix, mean=0, std=np.random.randint(0, 80))
-        scaled_noisy_matrix = scale_matrix(noisy_matrix, new_min=0, new_max=1)
-        
+def load_data_from_npy():
+    InputNames = ['n_TrainInput', 'n_TestInput', 'n_ValInput']
+    OutputNames = ['n_TrainOutput', 'n_TestOutput', 'n_ValOutput']
 
-        point = []
-        for i in range(48):
-            for j in range(48):
-                point.append([j/48,  (48 - i)/48, scaled_noisy_matrix[i, j]])
-            
-        n_TestInput.append(point)
-        
-        output = np.zeros(10)
-        output[TestOutput[_]] = 1
-        n_TestOutput.append(output.T)
-        
-    for _ in tqdm(range(len(ValInput) - 4500)):
-        
-        original_matrix = ValInput[_]
-        
-        rotated_matrix = rotate(original_matrix, np.random.randint(-20, 20), reshape=False)
-        expanded_matrix = expand_matrix(rotated_matrix, num_rows_to_add=10, num_cols_to_add=10, fill_value=0)
-        shifted_matrix = shift_matrix(expanded_matrix)
-        noisy_matrix = add_gaussian_noise(shifted_matrix, mean=0, std=np.random.randint(0, 80))
-        scaled_noisy_matrix = scale_matrix(noisy_matrix, new_min=0, new_max=1)
-        
-        point = []
-        for i in range(48):
-            for j in range(48):
-                point.append([j/48, (48 - i)/48, scaled_noisy_matrix[i, j]])
-            
-        n_ValInput.append(point)
-        
-        output = np.zeros(10)
-        output[ValOutput[_]] = 1
-        n_ValOutput.append(output.T)
-
-        
-    return np.array(n_TrainInput), np.array(n_TestInput), np.array(n_ValInput), np.array(n_TrainOutput), np.array(n_TestOutput), np.array(n_ValOutput)
-    
-print('a')
-N_Points = 48*48
-N_Dimensions = 3
-N_variables = 10
-NetworkScale = 1
-n_epochs=1000
-initial_lr = 0.001
-
-
-def load_data():
     INPUT = []
     OUTPUT = []
-    for qq in range(4):
+
+    for inputname, outputname in zip(InputNames, OutputNames):
+        input1 = np.load('data/' + inputname + str(0) + '.npy')
+        input2 = np.load('data/' + inputname + str(1) + '.npy')
+        input3 = np.load('data/' + inputname + str(2) + '.npy')
+        input4 = np.load('data/' + inputname + str(3) + '.npy')
         
+        output1 = np.load('data/' + outputname + str(0) + '.npy')
+        output2 = np.load('data/' + outputname + str(1) + '.npy')
+        output3 = np.load('data/' + outputname + str(2) + '.npy')
+        output4 = np.load('data/' + outputname + str(3) + '.npy')
+        
+        INPUT.append(np.concatenate((input1, input2, input3, input4), axis=0))
+        OUTPUT.append(np.concatenate((output1, output2, output3, output4), axis=0))
+          
+    return INPUT[0], OUTPUT[0], INPUT[1], OUTPUT[1],  INPUT[2], OUTPUT[2] 
 
+def decreasePointCloud(size, Input):
 
+    n_trainInput = np.zeros((len(Input), size, 3))
+    c = 0
+    for input in Input:
+        largest_indices = np.argsort(input[:, 2])[-size:]
+        n_trainInput[c] = np.take(input, largest_indices, axis=0)
+        c += 1
+        
+    return n_trainInput
 
-
-
-
+TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput = load_data_from_npy()
 check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
 
-model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale)
+
+# Parameters
+size = 300
+N_Points        = size
+N_Dimensions    = 3
+N_variables     = 10
+NetworkScale    = 1
+n_epochs        = 1000
+initial_lr      = 1e-3
 
 
-n_TrainInput, n_TestInput, n_ValInput, n_TrainOutput, n_TestOutput, n_ValOutput = transform_inputs(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
+TrainInput = decreasePointCloud(size, TrainInput)
+TestInput = decreasePointCloud(size, TestInput)
+ValInput = decreasePointCloud(size, ValInput)
 
 
-model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale)
+
+model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, 2*NetworkScale)
+
+input_layer = Input(shape=(size, 3))
+
+# Convolutional layers
+x = Conv1D(12, 3, activation='relu')(input_layer)
+x = Conv1D(32, 3, activation='relu')(x)
+x = MaxPooling1D(2)(x)
+x = Conv1D(32, 3, activation='relu')(x)
+x = MaxPooling1D(2)(x)
+x = Flatten()(x)
+
+# Fully connected layers
+x = Dense(64, activation='relu')(x)
+x = Dense(64, activation='relu')(x)
+output_layer = Dense(10, activation='sigmoid')(x)
+
+model = Model(inputs=input_layer, outputs=output_layer)
+
+#model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale)
 print_model_summary(model)
 
-learning_rate_piecewise = tf.keras.optimizers.schedules.PiecewiseConstantDecay([int(n_epochs*0.3), int(n_epochs*0.6)],
-                                                                               [initial_lr, initial_lr/10, initial_lr/100])
-optimizer = keras.optimizers.Adam(learning_rate=learning_rate_piecewise)
-model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+learning_rate_piecewise = tf.keras.optimizers.schedules.PiecewiseConstantDecay([int(n_epochs*0.3), int(n_epochs*0.6)],[initial_lr, initial_lr/10, initial_lr/100])
+model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate_piecewise), loss='categorical_crossentropy', metrics=['accuracy'])
+checkpoint = callbacks.ModelCheckpoint('Models.h5', monitor='val_accuracy', save_best_only=True, mode='max', verbose=0)
+#tensorboard_callback = callbacks.TensorBoard(log_dir="logs/", histogram_freq=int(n_epochs/100))
+history = model.fit(TrainInput, TrainOutput,epochs=n_epochs,batch_size=1200,validation_data=(ValInput, ValOutput),verbose=1)
 
 
+model.save('moddel.h5')
