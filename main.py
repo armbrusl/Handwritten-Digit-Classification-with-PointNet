@@ -94,15 +94,15 @@ def load_data_from_npy():
     OUTPUT = []
 
     for inputname, outputname in zip(InputNames, OutputNames):
-        input1 = np.load('data/' + inputname + str(0) + '.npy')
-        input2 = np.load('data/' + inputname + str(1) + '.npy')
-        input3 = np.load('data/' + inputname + str(2) + '.npy')
-        input4 = np.load('data/' + inputname + str(3) + '.npy')
+        input1 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + inputname + str(0) + '.npy')
+        input2 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + inputname + str(1) + '.npy')
+        input3 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + inputname + str(2) + '.npy')
+        input4 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + inputname + str(3) + '.npy')
         
-        output1 = np.load('data/' + outputname + str(0) + '.npy')
-        output2 = np.load('data/' + outputname + str(1) + '.npy')
-        output3 = np.load('data/' + outputname + str(2) + '.npy')
-        output4 = np.load('data/' + outputname + str(3) + '.npy')
+        output1 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + outputname + str(0) + '.npy')
+        output2 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + outputname + str(1) + '.npy')
+        output3 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + outputname + str(2) + '.npy')
+        output4 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + outputname + str(3) + '.npy')
         
         INPUT.append(np.concatenate((input1, input2, input3, input4), axis=0))
         OUTPUT.append(np.concatenate((output1, output2, output3, output4), axis=0))
