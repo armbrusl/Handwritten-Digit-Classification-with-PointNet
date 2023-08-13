@@ -130,7 +130,7 @@ N_Points        = size
 N_Dimensions    = 3
 N_variables     = 10
 NetworkScale    = 1
-n_epochs        = 1000
+n_epochs        = 3000
 initial_lr      = 1e-3
 
 
@@ -166,7 +166,7 @@ learning_rate_piecewise = tf.keras.optimizers.schedules.PiecewiseConstantDecay([
 model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate_piecewise), loss='categorical_crossentropy', metrics=['accuracy'])
 checkpoint = callbacks.ModelCheckpoint('Models.h5', monitor='val_accuracy', save_best_only=True, mode='max', verbose=0)
 #tensorboard_callback = callbacks.TensorBoard(log_dir="logs/", histogram_freq=int(n_epochs/100))
-history = model.fit(TrainInput, TrainOutput,epochs=n_epochs,batch_size=1200,validation_data=(ValInput, ValOutput),verbose=1)
+history = model.fit(TrainInput, TrainOutput,epochs=n_epochs,batch_size=120,validation_data=(ValInput, ValOutput),verbose=1)
 
 
 model.save('moddel.h5')
