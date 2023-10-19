@@ -12,11 +12,12 @@ from tensorflow.keras import initializers
 from tensorflow.keras import layers, models, callbacks
 from tqdm.keras import TqdmCallback 
 
+
 #Adding this for gpu compatibility
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
-print('There are ', len(physical_devices), ' GPUs avaiable')
+print('There is/are ', len(physical_devices), ' GPUs available')
 assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
-config = tf.config.experimental.set_memory_growth(physical_devices[0], True)
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 def check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput):
     D = [TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput]
@@ -35,8 +36,6 @@ def check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput,
     print('')
     print("There are ", int(totaltrajectories/2), ' different images with their corresponding labels.')
 
-
-
 def exp_dim(global_feature, N_Points):
     return tf.tile(global_feature, [1, N_Points, 1])
 
@@ -54,25 +53,25 @@ class custom_history_and_tqdm(keras.callbacks.Callback):
         self.tqdm_callback.on_epoch_end(epoch, logs)
 
 def BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale):
-    _tf_INPUT_TENSOR = Input(shape=(N_Points, N_Dimensions))
-    
-    g = Convolution1D(int(32*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(_tf_INPUT_TENSOR)
-    seg_part1 = g
-    g = Convolution1D(int(64*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(g)
-    g = Convolution1D(int(256*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(g)
-    g = Dropout(rate=0.5)(g)  # Adding dropout layer
-    
-    global_feature = MaxPooling1D(pool_size=N_Points)(g)
-    global_feature = Lambda(exp_dim, arguments={'N_Points': N_Points})(global_feature)
 
-    c = concatenate([seg_part1, global_feature])
-    c = Convolution1D(int(128*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
-    c = Dropout(rate=0.5)(c)  # Adding dropout layer
-    c = Convolution1D(int(64*NetworkScale), 1, activation='relu', kernel_initializer=initializers.RandomNormal(stddev=0.01), bias_initializer=initializers.Zeros())(c)
-    c = Dropout(rate=0.25)(c)  # Adding dropout layer
-    c = Dense(int(32*NetworkScale), activation='relu')(c)
-    prediction = Dense(10, activation='sigmoid')(c)
-    model = Model(inputs=_tf_INPUT_TENSOR, outputs=prediction)
+    input_layer = Input(shape=(N_Points, N_Dimensions))
+
+    # Convolutional layers
+    x = Conv1D(int(NetworkScale*16), N_Dimensions, activation='relu')(input_layer)
+    x = Conv1D(int(NetworkScale*32), N_Dimensions, activation='relu')(x)
+    x = MaxPooling1D(2)(x)
+    x = Conv1D(int(NetworkScale*32), N_Dimensions, activation='relu')(x)
+    x = MaxPooling1D(2)(x)
+    x = Flatten()(x)
+
+    # Fully connected layers
+    x = Dense(int(NetworkScale*32), activation='relu')(x)
+    x = Dense(int(NetworkScale*16), activation='relu')(x)
+    output_layer = Dense(N_variables, activation='sigmoid')(x)
+
+    model = Model(inputs=input_layer, outputs=output_layer)
+
+
     return model
 
 def print_model_summary(model):
@@ -125,13 +124,14 @@ check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, Val
 
 
 # Parameters
-size = 300
+size = 2304
 N_Points        = size
 N_Dimensions    = 3
 N_variables     = 10
 NetworkScale    = 1
-n_epochs        = 3000
+n_epochs        = 2000
 initial_lr      = 1e-3
+batchSize = 960
 
 
 TrainInput = decreasePointCloud(size, TrainInput)
@@ -140,33 +140,16 @@ ValInput = decreasePointCloud(size, ValInput)
 
 
 
-model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, 2*NetworkScale)
+model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale)
 
-input_layer = Input(shape=(size, 3))
 
-# Convolutional layers
-x = Conv1D(12, 3, activation='relu')(input_layer)
-x = Conv1D(32, 3, activation='relu')(x)
-x = MaxPooling1D(2)(x)
-x = Conv1D(32, 3, activation='relu')(x)
-x = MaxPooling1D(2)(x)
-x = Flatten()(x)
-
-# Fully connected layers
-x = Dense(64, activation='relu')(x)
-x = Dense(64, activation='relu')(x)
-output_layer = Dense(10, activation='sigmoid')(x)
-
-model = Model(inputs=input_layer, outputs=output_layer)
-
-#model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale)
 print_model_summary(model)
 
 learning_rate_piecewise = tf.keras.optimizers.schedules.PiecewiseConstantDecay([int(n_epochs*0.3), int(n_epochs*0.6)],[initial_lr, initial_lr/10, initial_lr/100])
 model.compile(optimizer=keras.optimizers.Adam(learning_rate=learning_rate_piecewise), loss='categorical_crossentropy', metrics=['accuracy'])
-checkpoint = callbacks.ModelCheckpoint('Models.h5', monitor='val_accuracy', save_best_only=True, mode='max', verbose=0)
+checkpoint = callbacks.ModelCheckpoint('Models.keras', monitor='val_accuracy', save_best_only=True, mode='max', verbose=0)
 #tensorboard_callback = callbacks.TensorBoard(log_dir="logs/", histogram_freq=int(n_epochs/100))
-history = model.fit(TrainInput, TrainOutput,epochs=n_epochs,batch_size=120,validation_data=(ValInput, ValOutput),verbose=1)
+history = model.fit(TrainInput, TrainOutput,epochs=n_epochs,batch_size=batchSize,validation_data=(ValInput, ValOutput),verbose=1)
 
 
-model.save('moddel.h5')
+model.save('moddel.keras')
