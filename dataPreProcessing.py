@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 from scipy.ndimage import rotate
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 # Load the MNIST dataset
@@ -43,7 +44,7 @@ def expand_matrix(matrix, num_rows_to_add, num_cols_to_add, fill_value=0):
 
 def shift_matrix(matrix):
     
-    shift_amount = np.random.randint(-15, 15, size=2)  # Shifts can be -1, 0, or 1
+    shift_amount = np.random.randint(-5, 5, size=2)  # Shifts can be -1, 0, or 1
     shifted_matrix = np.zeros_like(matrix)
     rows, cols = matrix.shape
     for r in range(rows):
@@ -59,6 +60,7 @@ def transform_inputs(Input, Output, multiplier):
 
     indices = np.arange(0, len(Input), 1)
     random_indices = np.random.choice(indices, int(multiplier*len(Input)))
+
     for index in tqdm(range(len(random_indices))):
         
         ii = random_indices[index]
@@ -67,7 +69,7 @@ def transform_inputs(Input, Output, multiplier):
         rotated_matrix = rotate(original_matrix, np.random.randint(-20, 20), reshape=False)
         expanded_matrix = expand_matrix(rotated_matrix, num_rows_to_add=10, num_cols_to_add=10, fill_value=0)
         shifted_matrix = shift_matrix(expanded_matrix)
-        noisy_matrix = add_gaussian_noise(shifted_matrix, mean=0, std=np.random.randint(0, 80))
+        noisy_matrix = add_gaussian_noise(shifted_matrix, mean=0, std=np.random.randint(0, 40))
         scaled_noisy_matrix = scale_matrix(noisy_matrix, new_min=0, new_max=1)
         
         point = []
@@ -89,11 +91,31 @@ ValInput, TestInput, ValOutput, TestOutput = train_test_split(TestValInput, Test
 
 check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
 
-for qq in range(4):
+
+plt.imshow(TrainInput[0])
+plt.title(TrainOutput[0])
+plt.show()
+
+a, b = transform_inputs([TrainInput[0]], [TrainOutput[0]], multiplier=5)
+
+for i, o in zip(a, b):
+    print(i.shape)
+    #print(i)
+    #print(i[0, :])
+    #print(i[:, 0])
+    #print(i[:, 1])
+    plt.scatter(i[:,0], i[:,1],c=i[:,2], cmap='jet')
+    plt.title(o)
+    plt.show()
+
+
+
+
+""" for qq in range(4):
     print('iteration: ', qq)
-    n_TrainInput, n_TrainOutput = transform_inputs(TrainInput, TrainOutput, multiplier=0.5)
-    n_TestInput, n_TestOutput = transform_inputs(TestInput, TestOutput, multiplier=0.5)
-    n_ValInput, n_ValOutput = transform_inputs(ValInput, ValOutput, multiplier=0.5)
+    n_TrainInput, n_TrainOutput = transform_inputs(TrainInput, TrainOutput, multiplier=0.1)
+    n_TestInput, n_TestOutput = transform_inputs(TestInput, TestOutput, multiplier=0.1)
+    n_ValInput, n_ValOutput = transform_inputs(ValInput, ValOutput, multiplier=0.1)
 
     check_tensor_sizes(n_TrainInput, n_TrainOutput, n_TestInput, n_TestOutput, n_ValInput, n_ValOutput)
 
@@ -107,3 +129,5 @@ for qq in range(4):
     np.save('data/n_ValOutput' + str(qq) + '.npy', n_ValOutput)
 
     del n_TrainInput, n_TrainOutput, n_TestInput, n_TestOutput, n_ValInput, n_ValOutput
+
+ """

@@ -11,6 +11,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import initializers
 from tensorflow.keras import layers, models, callbacks
 from tqdm.keras import TqdmCallback 
+from tensorflow.keras.models import load_model
 
 
 #Adding this for gpu compatibility
@@ -123,26 +124,29 @@ TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput = load_data_
 check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
 
 
+
 # Parameters
-size = 2304
+size = 300
 N_Points        = size
 N_Dimensions    = 3
 N_variables     = 10
 NetworkScale    = 1
-n_epochs        = 2000
+n_epochs        = 10000
 initial_lr      = 1e-3
 batchSize = 960
 
-
+print('Decreasing PointCloud size.')
 TrainInput = decreasePointCloud(size, TrainInput)
 TestInput = decreasePointCloud(size, TestInput)
 ValInput = decreasePointCloud(size, ValInput)
 
+check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
 
 
-model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale)
+#Building the Neural network
+#model = BUILD_NEURAL_NETWORK(N_Points, N_Dimensions, N_variables, NetworkScale)
 
-
+model = load_model('/home/ymos/MODELNEW.keras')
 print_model_summary(model)
 
 learning_rate_piecewise = tf.keras.optimizers.schedules.PiecewiseConstantDecay([int(n_epochs*0.3), int(n_epochs*0.6)],[initial_lr, initial_lr/10, initial_lr/100])
@@ -152,4 +156,5 @@ checkpoint = callbacks.ModelCheckpoint('Models.keras', monitor='val_accuracy', s
 history = model.fit(TrainInput, TrainOutput,epochs=n_epochs,batch_size=batchSize,validation_data=(ValInput, ValOutput),verbose=1)
 
 
-model.save('moddel.keras')
+model.save('/home/ymos/Documents/coding/HCwPN/MODELNEWNEW.keras')
+model.save('/home/ymos/Documents/coding/HCwPN/MODELNEW1.h5')
