@@ -10,6 +10,15 @@ import matplotlib.pyplot as plt
 # Load the MNIST dataset
 (TrainInput, TrainOutput), (TestValInput, TestValOutput) = mnist.load_data()
 
+def create_points(original_matrix):
+    dim = original_matrix.shape[0]
+    x, y = np.meshgrid(np.arange(dim), np.arange(dim))
+    x = x / dim
+    y = (dim - y) / dim
+    points = np.stack((x, y, original_matrix), axis=-1)
+    
+    return points.reshape(-1, 3)
+
 def check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput):
     D = [TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput]
     totaltrajectories = 0
@@ -72,12 +81,8 @@ def transform_inputs(Input, Output, multiplier):
         noisy_matrix = add_gaussian_noise(shifted_matrix, mean=0, std=np.random.randint(0, 40))
         scaled_noisy_matrix = scale_matrix(noisy_matrix, new_min=0, new_max=1)
         
-        point = []
-        for i in range(48):
-            for j in range(48):
-                point.append([j/48,  (48 - i)/48, scaled_noisy_matrix[i, j]])
             
-        new_Input.append(point)
+        new_Input.append(create_points((scaled_noisy_matrix + 1) ** 4))
         
         output = np.zeros(10)
         output[Output[ii]] = 1
@@ -92,26 +97,8 @@ ValInput, TestInput, ValOutput, TestOutput = train_test_split(TestValInput, Test
 check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
 
 
-plt.imshow(TrainInput[0])
-plt.title(TrainOutput[0])
-plt.show()
 
-a, b = transform_inputs([TrainInput[0]], [TrainOutput[0]], multiplier=5)
-
-for i, o in zip(a, b):
-    print(i.shape)
-    #print(i)
-    #print(i[0, :])
-    #print(i[:, 0])
-    #print(i[:, 1])
-    plt.scatter(i[:,0], i[:,1],c=i[:,2], cmap='jet')
-    plt.title(o)
-    plt.show()
-
-
-
-
-""" for qq in range(4):
+for qq in range(2):
     print('iteration: ', qq)
     n_TrainInput, n_TrainOutput = transform_inputs(TrainInput, TrainOutput, multiplier=0.1)
     n_TestInput, n_TestOutput = transform_inputs(TestInput, TestOutput, multiplier=0.1)
@@ -129,5 +116,3 @@ for i, o in zip(a, b):
     np.save('data/n_ValOutput' + str(qq) + '.npy', n_ValOutput)
 
     del n_TrainInput, n_TrainOutput, n_TestInput, n_TestOutput, n_ValInput, n_ValOutput
-
- """

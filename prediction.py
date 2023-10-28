@@ -2,29 +2,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow.keras.models import load_model
 
-def load_data_from_npy():
+
+def LoadData():
+    #base_path = '/media/ymos/armbrusl/Projects/HCwPN/data/'
+    base_path = '/home/ymos/Documents/coding/HCwPN_data/data/'
     InputName = 'n_TestInput'
     OutputName = 'n_TestOutput'
-
-    INPUT = []
-    OUTPUT = []
-
-    input1 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + InputName + str(0) + '.npy')
-    input2 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + InputName + str(1) + '.npy')
-    input3 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + InputName + str(2) + '.npy')
-    input4 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + InputName + str(3) + '.npy')
     
-    output1 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + OutputName + str(0) + '.npy')
-    output2 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + OutputName + str(1) + '.npy')
-    output3 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + OutputName + str(2) + '.npy')
-    output4 = np.load('/media/ymos/armbrusl/Projects/HCwPN/data/' + OutputName + str(3) + '.npy')
+    INPUT, OUTPUT = [], []
+    
+    for i in range(2):
+        INPUT.append(np.load(f'{base_path}{InputName}{i}.npy'))
+        OUTPUT.append(np.load(f'{base_path}{OutputName}{i}.npy'))
         
-    INPUT.append(np.concatenate((input1, input2, input3, input4), axis=0))
-    OUTPUT.append(np.concatenate((output1, output2, output3, output4), axis=0))
-          
-    return INPUT[0], OUTPUT[0]
+    INPUT = np.concatenate(INPUT, axis=0)
+    OUTPUT = np.concatenate(OUTPUT, axis=0)
+    
+    return INPUT, OUTPUT
 
-def check_tensor_sizes(TestInput, TestOutput):
+def CheckTensorSize(TestInput, TestOutput):
     D = [TestInput, TestOutput]
     totaltrajectories = 0
     
@@ -41,7 +37,7 @@ def check_tensor_sizes(TestInput, TestOutput):
     print('')
     print("There are ", int(totaltrajectories/2), ' different images with their corresponding labels.')
 
-def decreasePointCloud(size, Input):
+def DecreasePointCloud(size, Input):
 
     n_trainInput = np.zeros((len(Input), size, 3))
     c = 0
@@ -52,40 +48,77 @@ def decreasePointCloud(size, Input):
         
     return n_trainInput
 
+def plotExamplePredictions(number=20):
 
-TestInput, TestOutput= load_data_from_npy()
-check_tensor_sizes(TestInput, TestOutput)
-n_TestInput = decreasePointCloud(300, TestInput)
-check_tensor_sizes(TestInput, TestOutput)
+    indices = np.arange(0, len(n_TestInput), 1)
+    random_indices = np.random.choice(indices, number)
 
+    plt.figure(figsize=(5, 20))
+    for i, c in zip(random_indices, np.arange(1, len(random_indices)+1, 2)):
+            
+        plt.subplot(int(len(random_indices)/5), 5, c)
+        plt.scatter(n_TestInput[i, :, 0], n_TestInput[i, :, 1], c= n_TestInput[i, :, 2], s=5, cmap='jet')
+        plt.title(str(np.where(TestOutput[i]==1)[0]) + ' | ' + str(np.argmax(predictions[i])))
+        plt.axis('scaled')
+        plt.colorbar(shrink=0.5)
+        plt.xticks([])
+        plt.yticks([])
+
+        #plt.subplot(int(len(random_indices)/5), 5, c+1)
+        #plt.plot(np.linspace(0, 9, 10), predictions[i])
+        #plt.xticks(np.linspace(0, 9, 10))
+        #plt.ylim(0, 1)
+        
+    plt.show()
+    
+def predictAll(TestInput, predictions, TestOutput, path, n_TestInput):
+    
+    counter = 0
+    counter2 = 0
+    totalLength = len(TestOutput)
+
+    for pred, truth, input, n_input in zip(predictions, TestOutput, TestInput, n_TestInput):
+        
+        truthval = np.where(truth==1)[0]
+        predval = np.argmax(pred)
+        
+        if(truthval == predval):
+            counter += 1
+        else:
+            counter2 += 1
+            plt.figure(figsize=(10, 4))
+            
+            plt.subplot(1, 2, 1)
+            plt.scatter(input[:, 0], input[:, 1], c=input[:, 2], s=5, cmap='jet')
+            plt.colorbar()
+            plt.title('Truth: ' + str(truthval[0]) + ' -|- Pred: ' + str(predval))
+            
+            plt.subplot(1, 2, 2)
+            plt.scatter(n_input[:, 0], n_input[:, 1], c=n_input[:, 2], s=5, cmap='jet')
+            plt.colorbar()
+            
+            
+            plt.savefig(path + 'WrongPred/' + str(counter2) + '.png')
+            plt.clf()
+            plt.close()
+            
+    return counter/totalLength * 100
+    
+    
+    
+path = '/home/ymos/Documents/coding/HCwPN_data/'
+TestInput, TestOutput= LoadData()
+n_TestInput = DecreasePointCloud(128, TestInput)
+CheckTensorSize(n_TestInput, TestOutput)
 
 # Load the model
-model = load_model('/home/ymos/MODELNEW.keras')
-model.summary()
-
-
-
-
+model = load_model(path + 'models/MODEL_20231028-155342.keras')
 predictions = model.predict(n_TestInput)
+            
+    
+truthRatio = predictAll(TestInput, predictions, TestOutput, path, n_TestInput)
 
-indices = np.arange(0, len(n_TestInput), 1)
-random_indices = np.random.choice(indices, 10)
+print(str(truthRatio) + ' precent of all Test Inputs where predicted successfully.')
 
-for i in random_indices:
-        
-    plt.figure(figsize=(15, 5))
-    plt.subplot(1, 2, 1)
-    plt.scatter(n_TestInput[i, :, 0], n_TestInput[i, :, 1], c= n_TestInput[i, :, 2], s=5, cmap='jet')
-    plt.title(str(np.where(TestOutput[i]==1)[0]))
-    plt.axis('scaled')
-    plt.colorbar(shrink=0.5)
-    plt.xticks([])
-    plt.yticks([])
-
-    plt.subplot(1, 2, 2)
-    plt.plot(np.linspace(0, 9, 10), predictions[i])
-    plt.xticks(np.linspace(0, 9, 10))
-    plt.ylim(0, 1)
-    plt.show()
-
+#plotExamplePredictions(20)
 
