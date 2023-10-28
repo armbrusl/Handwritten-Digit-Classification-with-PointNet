@@ -14,7 +14,7 @@ Utilizing a 3D PointCloud to classify handwritten digits using an augmented vers
 
 ## Best Model Performance
 
-The best model achieved so far has demonstrated an accuracy of 83%, taking about 1ms per PointCloud prediction, showcasing its efficiency and effectiveness in classifying handwritten digits:
+The best model achieved so far has demonstrated an accuracy of 84.1%, taking about 1ms per PointCloud prediction, showcasing its efficiency and effectiveness in classifying handwritten digits:
 
     
     N_Points        = 128               # how many points should be taken from the pointcloud ?
