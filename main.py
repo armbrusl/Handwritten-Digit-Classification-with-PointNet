@@ -119,11 +119,11 @@ TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput = LoadData(p
 CheckTensorSize(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
 
 # Parameters
-N_Points        = 192               # how many points should be taken from the pointcloud ?
+N_Points        = 128               # how many points should be taken from the pointcloud ?
 N_Dimensions    = 3                 # number of input dimensions
 N_variables     = 10                # number of output dimensions
 NetworkScale    = 0.5                 # scaling factor for the neural network
-n_epochs        = 10              # number of epochs
+n_epochs        = 2000              # number of epochs
 initial_lr      = 2e-3              # initial learning rate
 batchSize       = 240               
 

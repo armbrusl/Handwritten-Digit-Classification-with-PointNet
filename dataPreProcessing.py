@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 def create_points(original_matrix):
     dim = original_matrix.shape[0]
     x, y = np.meshgrid(np.arange(dim), np.arange(dim))
-    x = x / dim
-    y = (dim - y) / dim
+    x = x / dim * 10
+    y = (dim - y) / dim * 10
     points = np.stack((x, y, original_matrix), axis=-1)
     
     return points.reshape(-1, 3)
@@ -96,7 +96,7 @@ ValInput, TestInput, ValOutput, TestOutput = train_test_split(TestValInput, Test
 
 check_tensor_sizes(TrainInput, TrainOutput, TestInput, TestOutput, ValInput, ValOutput)
 
-
+path = '/home/ymos/Documents/coding/HCwPN_data/'
 
 for qq in range(2):
     print('iteration: ', qq)
@@ -106,13 +106,13 @@ for qq in range(2):
 
     check_tensor_sizes(n_TrainInput, n_TrainOutput, n_TestInput, n_TestOutput, n_ValInput, n_ValOutput)
 
-    np.save('data/n_TrainInput' + str(qq) + '.npy', n_TrainInput)
-    np.save('data/n_TrainOutput' + str(qq) + '.npy', n_TrainOutput)
+    np.save(path + 'data/n_TrainInput' + str(qq) + '.npy', n_TrainInput)
+    np.save(path + 'data/n_TrainOutput' + str(qq) + '.npy', n_TrainOutput)
 
-    np.save('data/n_TestInput' + str(qq) + '.npy', n_TestInput)
-    np.save('data/n_TestOutput' + str(qq) + '.npy', n_TestOutput)
+    np.save(path + 'data/n_TestInput' + str(qq) + '.npy', n_TestInput)
+    np.save(path + 'data/n_TestOutput' + str(qq) + '.npy', n_TestOutput)
 
-    np.save('data/n_ValInput' + str(qq) + '.npy', n_ValInput)
-    np.save('data/n_ValOutput' + str(qq) + '.npy', n_ValOutput)
+    np.save(path + 'data/n_ValInput' + str(qq) + '.npy', n_ValInput)
+    np.save(path + 'data/n_ValOutput' + str(qq) + '.npy', n_ValOutput)
 
     del n_TrainInput, n_TrainOutput, n_TestInput, n_TestOutput, n_ValInput, n_ValOutput

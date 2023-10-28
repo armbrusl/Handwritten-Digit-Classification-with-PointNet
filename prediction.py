@@ -104,21 +104,20 @@ def predictAll(TestInput, predictions, TestOutput, path, n_TestInput):
             
     return counter/totalLength * 100
     
-    
+
+N_Points = 128
     
 path = '/home/ymos/Documents/coding/HCwPN_data/'
 TestInput, TestOutput= LoadData()
-n_TestInput = DecreasePointCloud(128, TestInput)
+n_TestInput = DecreasePointCloud(N_Points, TestInput)
 CheckTensorSize(n_TestInput, TestOutput)
 
 # Load the model
-model = load_model(path + 'models/MODEL_20231028-155342.keras')
+model = load_model(path + 'SavedModels/20231028-165255.keras')
 predictions = model.predict(n_TestInput)
             
     
 truthRatio = predictAll(TestInput, predictions, TestOutput, path, n_TestInput)
-
 print(str(truthRatio) + ' precent of all Test Inputs where predicted successfully.')
-
 #plotExamplePredictions(20)
 
