@@ -1,14 +1,32 @@
-# Handwritten Classification with PointNet (HCwPN)
+# Handwritten Digit Classification with PointNet
 
-## Using a 3D PointCloud to classify handwritten digits using the MNIST dataset.
+Utilizing a 3D PointCloud to classify handwritten digits using an augmented version of the MNIST dataset. To accelarate the computation tensorflow uses a local GPU. <br>
 
-## 1. The excisitng mnist dataset is augmented by expaning the matrices, rotationg and adding noise. This is done in the 'dataPreProcessing.py' file.
+## Overview
 
-## 2. Using the 'main.py' file we can train a 3D pointcloud on the generated 'augmented mnist' dataset. Choosing the right hyperparameters is crucial during this step. The 'N_Points' varaible allows us to choose how many of the 'biggest values' in our pointcloud are actually considered during training. Keeping this number as low as possible is crucial.
+1. Data Augmentation : The existing MNIST dataset is augmented by expanding the matrices, rotating, and adding noise to create a more versatile dataset. This process is carried out in the dataPreProcessing.py file.
 
-## 3. In the 'analyzingTraining.ipynb' file we can look at the Loss terms from training
+2. Model Training    : A 3D PointCloud model is trained on the generated 'augmented mnist' dataset using the main.py file. The selection of appropriate hyperparameters is essential. The variable N_Points allows for the adjustment of how many of the     'largest values' in our point cloud are considered during training, and keeping this number as low as possible is crucial.
 
-## 4. In the 'predictio.py' file we can test the model on testdata.
+3. Training Analysis: The analyzingTraining.ipynb file contains a detailed examination of the loss terms from the training process, facilitating a deeper understanding of the model's performance.
+
+4. Model Testing    : The model's performance in terms of classification accuracy can be tested on new, unseen data using the prediction.py file, providing insights into its generalization capability.
+
+## Best Model Performance
+
+The best model achieved so far has demonstrated an accuracy of 83%, taking about 1ms per PointCloud prediction, showcasing its efficiency and effectiveness in classifying handwritten digits:
+
+    
+    N_Points        = 128               # how many points should be taken from the pointcloud ?
+    N_Dimensions    = 3                 # number of input dimensions
+    N_variables     = 10                # number of output dimensions
+    NetworkScale    = 0.5               # scaling factor for the neural network
+    n_epochs        = 2000              # number of epochs
+    initial_lr      = 2e-3              # initial learning rate
+    batchSize       = 240    
+
+## Preproducing Results
+
+The 'requirements.txt' file includes the libraries contained in the enviroment I used.
 
 
-## The bes tmodel I have archieved thus far has an accuracy of 83 % and takes about 1ms to per pointCloud prediction.
