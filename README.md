@@ -1,4 +1,4 @@
-# Handwritten Classification with PointNet (HCwPN)
+# Handwritten Digit Classification with PointNet (HCwPN)
 
 Utilizing a 3D PointCloud to classify handwritten digits using an augmented version of the MNIST dataset. To accelarate the computation tensorflow uses a local GPU. <br>
 
