@@ -1,5 +1,7 @@
 # Handwritten Classification with PointNet (HCwPN)
 
+![Alt text]('MnistExamplesModifies.png')
+
 Utilizing a 3D PointCloud to classify handwritten digits using an augmented version of the MNIST dataset.<br>
 
 ## Overview
